@@ -154,7 +154,7 @@ Razor Pages follow convention-based routing: `/Pages/{Area}/{Action}` maps to UR
   "timestamp": "2025-12-23T06:27:53.431Z",
   "database": {
     "connected": true,
-    "name": "SchoolContext-a8778b0f-1bfd-4d0f-a500-09390a0df97f",
+    "name": "SchoolContext-{guid}",
     "serverTime": "2025-12-23T06:27:53.500Z"
   }
 }
@@ -191,7 +191,7 @@ Razor Pages follow convention-based routing: `/Pages/{Area}/{Action}` maps to UR
 **ASP.NET Core Connection String:**
 ```
 Server=(localdb)\mssqllocaldb;
-Database=SchoolContext-a8778b0f-1bfd-4d0f-a500-09390a0df97f;
+Database=SchoolContext-{guid};
 Trusted_Connection=True;
 MultipleActiveResultSets=true
 ```
@@ -200,7 +200,7 @@ MultipleActiveResultSets=true
 ```typescript
 {
   server: '(localdb)\\mssqllocaldb',
-  database: 'SchoolContext-a8778b0f-1bfd-4d0f-a500-09390a0df97f',
+  database: 'SchoolContext-{guid}',
   options: {
     encrypt: false,
     trustServerCertificate: true,
@@ -601,7 +601,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.ApplicationInsights(
-        builder.Configuration["ApplicationInsights:InstrumentationKey"], 
+        builder.Configuration["ApplicationInsights:ConnectionString"], 
         TelemetryConverter.Traces)
     .CreateLogger();
 
