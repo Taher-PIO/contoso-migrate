@@ -202,8 +202,8 @@ MultipleActiveResultSets=true
   server: '(localdb)\\mssqllocaldb',
   database: 'SchoolContext-{guid}',
   options: {
-    encrypt: false,
-    trustServerCertificate: true,
+    encrypt: false,  // Development only - use true in production
+    trustServerCertificate: true,  // Development only - validate certs in production
     enableArithAbort: true,
     connectTimeout: 30000,
     requestTimeout: 30000
@@ -215,6 +215,11 @@ MultipleActiveResultSets=true
   }
 }
 ```
+
+**⚠️ Security Note:** The configuration above is for **development only** with LocalDB. In production:
+- Set `encrypt: true` to enable TLS encryption
+- Set `trustServerCertificate: false` and validate server certificates
+- Use proper certificate management
 
 **Connection Resilience:**
 - **ASP.NET Core:** Entity Framework Core provides built-in retry logic for transient failures (implementation varies by provider)
@@ -592,6 +597,9 @@ builder.Services.AddOutputCache();
 
 **Recommendation:**
 ```csharp
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+
 // Add Application Insights
 builder.Services.AddApplicationInsightsTelemetry();
 
@@ -659,10 +667,21 @@ builder.Services.AddHealthChecks()
 
 #### 4. API Versioning (if adding REST endpoints)
 ```csharp
+using Microsoft.AspNetCore.Mvc.Versioning;
+
 builder.Services.AddApiVersioning(options => {
     options.DefaultApiVersion = new ApiVersion(1, 0);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version")
+    );
+});
+
+builder.Services.AddVersionedApiExplorer(options => {
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
 });
 ```
 
@@ -675,6 +694,9 @@ builder.Services.AddApiVersioning(options => {
 - Implement proper JSON serialization settings
 
 ```csharp
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
