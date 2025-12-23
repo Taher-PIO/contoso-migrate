@@ -726,7 +726,7 @@ app.MapGrpcService<StudentService>();
 
 ### Complete Endpoint List (ASP.NET Core)
 
-**Total Endpoints:** 28 (7 per resource × 4 resources)
+**Total Endpoints:** 28 (4 supporting pages + 6 actions per resource × 4 resources)
 
 ```
 GET  /                                  - Home page
