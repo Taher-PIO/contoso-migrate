@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug API",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/contoso-api/src/index.ts",
+      "preLaunchTask": null,
+      "outFiles": ["${workspaceFolder}/contoso-api/dist/**/*.js"],
+      "runtimeArgs": ["-r", "ts-node/register"],
+      "envFile": "${workspaceFolder}/contoso-api/.env"
+    }
+  ]
+}
