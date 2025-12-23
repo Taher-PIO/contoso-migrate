@@ -600,8 +600,10 @@ builder.Services.AddOutputCache();
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
-// Add Application Insights
-builder.Services.AddApplicationInsightsTelemetry();
+// Add Application Insights (configure via appsettings.json or options)
+builder.Services.AddApplicationInsightsTelemetry(options => {
+    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+});
 
 // Add Serilog for structured logging
 Log.Logger = new LoggerConfiguration()
