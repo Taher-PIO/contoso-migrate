@@ -13,11 +13,13 @@ schema_version: '20220226012101_RowVersion'
 
 This document provides a comprehensive catalog of all data entities, schemas, relationships, and migration considerations for the ContosoUniversity application. The data model implements a normalized relational schema using Entity Framework Core 6.0.2 with SQL Server as the backend database.
 
-**Database:** `SchoolContext-a8778b0f-1bfd-4d0f-a500-09390a0df97f`  
+**Database:** `SchoolContext-{environment-guid}` (Example: `SchoolContext-a8778b0f-1bfd-4d0f-a500-09390a0df97f`)  
 **ORM:** Entity Framework Core 6.0.2  
 **Provider:** Microsoft.EntityFrameworkCore.SqlServer 6.0.2  
 **Migration Count:** 2 migrations  
 **Entity Count:** 7 entities (6 domain entities + 1 junction table)
+
+**Note:** Database name includes a GUID suffix that varies by environment. Production database names should follow organizational naming conventions.
 
 ---
 
@@ -583,6 +585,36 @@ catch (DbUpdateConcurrencyException ex) {
 
 **⚠️ REQUIRES ANALYSIS:** The following are typical university system volumes. Actual values must be confirmed with stakeholders.
 
+**Data Collection Methods:**
+1. **SQL Queries for Existing Systems:**
+   ```sql
+   -- Get current row counts
+   SELECT t.name AS TableName, p.rows AS RowCount
+   FROM sys.tables t
+   INNER JOIN sys.partitions p ON t.object_id = p.object_id
+   WHERE p.index_id IN (0,1)
+   ORDER BY p.rows DESC;
+   
+   -- Get table size and growth
+   SELECT 
+       t.name AS TableName,
+       SUM(a.total_pages) * 8 / 1024 AS SizeMB,
+       p.rows AS RowCount
+   FROM sys.tables t
+   INNER JOIN sys.indexes i ON t.object_id = i.object_id
+   INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+   INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+   GROUP BY t.name, p.rows
+   ORDER BY SizeMB DESC;
+   ```
+
+2. **Stakeholder Interview Questions:**
+   - Current active student count and historical retention policy
+   - Average courses per student per term
+   - Number of academic terms per year
+   - Faculty size and turnover rate
+   - Historical data retention requirements
+
 | Table | Estimated Rows (Small University) | Estimated Rows (Medium University) | Growth Rate | Notes |
 |-------|-----------------------------------|-------------------------------------|-------------|-------|
 | Student | 5,000 - 10,000 | 20,000 - 50,000 | +10% annually | Current + alumni if retained |
@@ -692,7 +724,11 @@ GROUP BY i.ID, i.LastName, i.FirstName;
 **Purpose:** Faculty workload reports  
 **Refresh Strategy:** Weekly or on-demand
 
-**Implementation Note:** SQL Server does not support native materialized views. Use indexed views with `WITH SCHEMABINDING` or application-level caching.
+**Implementation Note:** SQL Server supports indexed views with `WITH SCHEMABINDING`, which function as materialized views. Indexed views physically persist the aggregated data and automatically update when base tables change. For optimal performance:
+- Use `WITH SCHEMABINDING` to bind the view to the schema
+- Create a unique clustered index on the view
+- Consider `WITH (NOEXPAND)` hint in queries on Standard Edition
+- Alternatively, use application-level caching (Redis, in-memory) for more flexibility
 
 ---
 
@@ -871,9 +907,14 @@ If the university operates in EU or processes EU citizen data:
    - Set identity seed after migration: `DBCC CHECKIDENT ('TableName', RESEED, <current_max_value>)`
 
 2. **Manual CourseID Management:**
-   - Ensure application logic assigns unique CourseIDs
-   - Consider adding unique constraint or check constraint
-   - Potential for collision if multiple sources insert courses
+   - ⚠️ **HIGH RISK:** Application must assign unique CourseIDs (no auto-generation)
+   - **Potential for ID conflicts** in distributed scenarios or multi-source imports
+   - **Mitigation Strategies:**
+     - Implement centralized ID assignment service or database sequence
+     - Use range allocation (e.g., Department A: 1000-1999, Department B: 2000-2999)
+     - Add application-level validation to check for existing CourseID before insert
+     - Consider switching to IDENTITY for auto-generation if manual assignment is not required
+     - Document CourseID assignment rules and ranges
 
 3. **GUIDs vs Integer IDs:**
    - Current design uses integer IDs (space-efficient, human-readable)
@@ -1062,17 +1103,35 @@ Department DELETE
 
 ### Schema Rollback Procedures
 
+**⚠️ CRITICAL WARNING:** Always backup database before rollback operations. The order of operations is important to prevent data loss.
+
 **Rollback Migration 2 (RowVersion):**
 ```bash
-dotnet ef migrations remove
+# Step 1: Rollback database schema FIRST
 dotnet ef database update 20220226005057_InitialCreate
+
+# Step 2: (Optional) Remove migration file from project
+dotnet ef migrations remove
 ```
 
 **Rollback Migration 1 (InitialCreate):**
 ```bash
+# This command drops ALL tables and data
 dotnet ef database update 0
 ```
-**⚠️ WARNING:** Rolling back InitialCreate drops all tables and data. Ensure backup available.
+**⚠️ EXTREME WARNING:** Rolling back InitialCreate drops all tables and permanently deletes all data. This operation:
+- Removes all 7 tables
+- Deletes all relationships and indexes
+- Cannot be undone without a backup
+- Should NEVER be performed in production without explicit approval and verified backup
+
+**Best Practice Rollback Procedure:**
+1. Create a full database backup: `BACKUP DATABASE [SchoolContext] TO DISK = 'backup.bak'`
+2. Document current state (row counts, schema version)
+3. Execute rollback in development environment first
+4. Test application functionality after rollback
+5. If successful, proceed with production rollback during maintenance window
+6. Keep backup for 72 hours minimum after rollback
 
 ---
 
