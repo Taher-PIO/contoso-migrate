@@ -600,7 +600,8 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.ApplicationInsights(TelemetryConfiguration.Active, 
+    .WriteTo.ApplicationInsights(
+        builder.Configuration["ApplicationInsights:InstrumentationKey"], 
         TelemetryConverter.Traces)
     .CreateLogger();
 
