@@ -127,7 +127,7 @@ This glossary provides a comprehensive catalog of domain terms, technical acrony
 **Source:** [03-Compatibility-Gap-Analysis.md](./03-Compatibility-Gap-Analysis.md), [05-API-&-Service-Contracts.md](./05-API-&-Service-Contracts.md#authentication--authorization)
 
 ### Bounded Context
-**Definition:** A explicit boundary within a domain model where a particular domain model is defined and applicable. Each bounded context has its own ubiquitous language.  
+**Definition:** An explicit boundary within a domain model where a particular domain model is defined and applicable. Each bounded context has its own ubiquitous language.  
 **Usage:** This glossary organizes terms by bounded contexts (Student records, Academic catalog, Faculty management, etc.)  
 **Pattern:** Domain-Driven Design (DDD) concept  
 **Source:** Domain-Driven Design principles applied to ContosoUniversity
