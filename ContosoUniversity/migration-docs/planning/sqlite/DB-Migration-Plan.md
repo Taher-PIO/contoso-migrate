@@ -796,6 +796,7 @@ SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;
 
 -- Expected: Course, CourseInstructor, Departments, Enrollments, Instructor, 
 --           OfficeAssignments, Student, __EFMigrationsHistory
+-- Note: Table names match EF Core conventions (some singular, some plural based on ToTable() configuration)
 
 -- SQLite: List all indexes
 SELECT name, tbl_name FROM sqlite_master WHERE type='index' ORDER BY tbl_name;
@@ -1195,6 +1196,8 @@ If a NO-GO decision is made:
 
 ### Recommended PRAGMA Settings
 
+**IMPORTANT:** SQLite PRAGMA settings are connection-scoped and must be re-applied for each new connection. In production environments with connection pooling, ensure PRAGMAs are configured at the application level (via EF Core interceptors or connection events) to guarantee they are applied to every pooled connection.
+
 ```sql
 -- Enable foreign key constraints (CRITICAL)
 PRAGMA foreign_keys = ON;
@@ -1237,14 +1240,46 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     });
 }
 
-// Execute PRAGMAs on connection open
-protected override void OnModelCreating(ModelBuilder modelBuilder)
+// CRITICAL: Apply PRAGMAs for each connection using a connection interceptor
+// This ensures settings persist across connection pool reuse
+public class SqliteConnectionInterceptor : DbConnectionInterceptor
 {
-    base.OnModelCreating(modelBuilder);
+    public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData)
+    {
+        base.ConnectionOpened(connection, eventData);
+        
+        // Apply critical PRAGMAs
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            PRAGMA foreign_keys = ON;
+            PRAGMA journal_mode = WAL;
+            PRAGMA synchronous = NORMAL;
+            PRAGMA cache_size = -64000;
+            PRAGMA temp_store = MEMORY;
+        ";
+        command.ExecuteNonQuery();
+    }
     
-    // Note: PRAGMA commands should be executed at connection level
-    // Implement in a connection interceptor or at application startup
+    public override async Task ConnectionOpenedAsync(DbConnection connection, ConnectionEndEventData eventData, CancellationToken cancellationToken = default)
+    {
+        await base.ConnectionOpenedAsync(connection, eventData, cancellationToken);
+        
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            PRAGMA foreign_keys = ON;
+            PRAGMA journal_mode = WAL;
+            PRAGMA synchronous = NORMAL;
+            PRAGMA cache_size = -64000;
+            PRAGMA temp_store = MEMORY;
+        ";
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
 }
+
+// Register the interceptor in Startup.cs or Program.cs
+services.AddDbContext<SchoolContext>(options =>
+    options.UseSqlite(connectionString)
+           .AddInterceptors(new SqliteConnectionInterceptor()));
 ```
 
 ---
