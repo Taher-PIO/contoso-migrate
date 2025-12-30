@@ -289,6 +289,7 @@ DB_TRUST_SERVER_CERTIFICATE=true
 // Program.cs - Lines 28-36
 using (var scope = app.Services.CreateScope())
 {
+    var services = scope.ServiceProvider;
     var context = services.GetRequiredService<SchoolContext>();
     context.Database.Migrate();  // Applies pending migrations
     DbInitializer.Initialize(context);  // Seeds initial data
