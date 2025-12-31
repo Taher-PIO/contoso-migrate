@@ -1,0 +1,89 @@
+// Prisma schema based on ContosoUniversity EF Core models
+// SQLite with WAL mode, foreign keys enabled
+// Manual CourseID assignment, Department.version for optimistic locking
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Student entity
+model Student {
+  ID             Int          @id @default(autoincrement())
+  LastName       String
+  FirstMidName   String
+  EnrollmentDate DateTime
+  Enrollments    Enrollment[]
+
+  @@map("Students")
+}
+
+// Instructor entity
+model Instructor {
+  ID               Int               @id @default(autoincrement())
+  LastName         String
+  FirstMidName     String
+  HireDate         DateTime
+  OfficeAssignment OfficeAssignment?
+  Courses          Course[]
+  Departments      Department[]
+
+  @@map("Instructors")
+}
+
+// Course entity (manual CourseID assignment - no autoincrement)
+model Course {
+  CourseID     Int          @id
+  Title        String?
+  Credits      Int
+  DepartmentID Int
+  Department   Department   @relation(fields: [DepartmentID], references: [DepartmentID], onDelete: Cascade)
+  Enrollments  Enrollment[]
+  Instructors  Instructor[]
+
+  @@index([DepartmentID])
+  @@map("Courses")
+}
+
+// Department entity with version for optimistic locking
+model Department {
+  DepartmentID Int          @id @default(autoincrement())
+  Name         String?
+  Budget       Float
+  StartDate    DateTime
+  InstructorID Int?
+  version      Int          @default(1)
+  Administrator Instructor? @relation(fields: [InstructorID], references: [ID])
+  Courses      Course[]
+
+  @@index([InstructorID])
+  @@map("Departments")
+}
+
+// Enrollment entity (junction with Grade)
+model Enrollment {
+  EnrollmentID Int      @id @default(autoincrement())
+  CourseID     Int
+  StudentID    Int
+  Grade        Int?
+  Course       Course   @relation(fields: [CourseID], references: [CourseID], onDelete: Cascade)
+  Student      Student  @relation(fields: [StudentID], references: [ID], onDelete: Cascade)
+
+  @@index([CourseID])
+  @@index([StudentID])
+  @@map("Enrollments")
+}
+
+// OfficeAssignment entity (one-to-one with Instructor)
+model OfficeAssignment {
+  InstructorID Int        @id
+  Location     String?
+  Instructor   Instructor @relation(fields: [InstructorID], references: [ID], onDelete: Cascade)
+
+  @@map("OfficeAssignments")
+}

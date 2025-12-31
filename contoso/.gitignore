@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+
+# SQLite database files (DO NOT COMMIT)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+data/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+package-lock.json

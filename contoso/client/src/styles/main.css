@@ -1,0 +1,67 @@
+/* Global styles */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Form spacing improvements */
+.form-label {
+  font-weight: 500;
+}
+
+/* Card hover effects */
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+/* Table action buttons */
+.table .btn {
+  white-space: nowrap;
+}
+
+/* Footer */
+footer {
+  margin-top: auto;
+}
+
+/* Alert improvements */
+.alert {
+  border-radius: 0.25rem;
+}
+
+/* Loading spinner container */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Search and filter row spacing */
+.row .col-md-6,
+.row .col-md-4,
+.row .col-md-2 {
+  margin-bottom: 0.5rem;
+}
+
+/* Pagination styling */
+.pagination {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Button gap utility (for older Bootstrap versions) */
+.d-flex.gap-2 {
+  gap: 0.5rem;
+}
+
+/* Ensure icons align properly (if using bootstrap-icons later) */
+.bi {
+  vertical-align: -0.125em;
+}
