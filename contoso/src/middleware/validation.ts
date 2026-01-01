@@ -94,6 +94,44 @@ export const validateStudentUpdate: ValidationChain[] = [
             return true;
         })
         .toDate(),
+
+    // Enrollments array validation (optional)
+    body('Enrollments')
+        .optional()
+        .isArray().withMessage('Enrollments must be an array'),
+
+    body('Enrollments.*.CourseID')
+        .isInt({ min: 1 }).withMessage('CourseID must be a positive integer')
+        .toInt(),
+
+    body('Enrollments.*.Grade')
+        .optional()
+        .isInt({ min: 0, max: 4 }).withMessage('Grade must be an integer between 0 and 4 (A=0, B=1, C=2, D=3, F=4)')
+        .toInt(),
+];
+
+/**
+ * Enrollment validation (for student create/update)
+ */
+export const validateEnrollmentArray: ValidationChain[] = [
+    body('Enrollments')
+        .optional()
+        .isArray().withMessage('Enrollments must be an array'),
+
+    body('Enrollments.*.CourseID')
+        .isInt({ min: 1 }).withMessage('CourseID must be a positive integer')
+        .toInt(),
+
+    body('Enrollments.*.Grade')
+        .optional()
+        .custom((value) => {
+            if (value === null || value === undefined) return true;
+            const grade = parseInt(value);
+            if (isNaN(grade) || grade < 0 || grade > 4) {
+                throw new Error('Grade must be 0 (A), 1 (B), 2 (C), 3 (D), or 4 (F)');
+            }
+            return true;
+        }),
 ];
 
 /**
@@ -108,7 +146,7 @@ export const validateCourseCreate: ValidationChain[] = [
     body('Title')
         .trim()
         .notEmpty().withMessage('Title is required')
-        .isLength({ min: 1, max: 100 }).withMessage('Title must be between 1 and 100 characters')
+        .isLength({ min: 3, max: 50 }).withMessage('Title must be between 3 and 50 characters')
         .matches(/^[a-zA-Z0-9\s\-'\.,:&()]+$/).withMessage('Title contains invalid characters'),
 
     body('Credits')
@@ -128,7 +166,7 @@ export const validateCourseUpdate: ValidationChain[] = [
         .optional()
         .trim()
         .notEmpty().withMessage('Title cannot be empty')
-        .isLength({ min: 1, max: 100 }).withMessage('Title must be between 1 and 100 characters')
+        .isLength({ min: 3, max: 50 }).withMessage('Title must be between 3 and 50 characters')
         .matches(/^[a-zA-Z0-9\s\-'\.,:&()]+$/).withMessage('Title contains invalid characters'),
 
     body('Credits')
@@ -258,7 +296,103 @@ export const validateListQuery: ValidationChain[] = [
 ];
 
 /**
- * Validates instructor assignment
+ * Instructor validation rules
+ */
+export const validateInstructorCreate: ValidationChain[] = [
+    body('FirstMidName')
+        .trim()
+        .notEmpty().withMessage('FirstMidName is required')
+        .isLength({ min: 1, max: 50 }).withMessage('FirstMidName must be between 1 and 50 characters')
+        .matches(/^[a-zA-Z\s\-'\.]+$/).withMessage('FirstMidName contains invalid characters'),
+
+    body('LastName')
+        .trim()
+        .notEmpty().withMessage('LastName is required')
+        .isLength({ min: 1, max: 50 }).withMessage('LastName must be between 1 and 50 characters')
+        .matches(/^[a-zA-Z\s\-'\.]+$/).withMessage('LastName contains invalid characters'),
+
+    body('HireDate')
+        .notEmpty().withMessage('HireDate is required')
+        .isISO8601().withMessage('HireDate must be a valid date (YYYY-MM-DD)')
+        .custom((value) => {
+            const date = new Date(value);
+            const minDate = new Date('1900-01-01');
+            const maxDate = new Date();
+
+            if (date < minDate || date > maxDate) {
+                throw new Error('HireDate must be between 1900 and today');
+            }
+            return true;
+        })
+        .toDate(),
+
+    body('OfficeLocation')
+        .optional({ values: 'falsy' })
+        .trim()
+        .isLength({ max: 50 }).withMessage('OfficeLocation cannot exceed 50 characters')
+        .matches(/^[a-zA-Z0-9\s\-\.#]+$/).withMessage('OfficeLocation contains invalid characters'),
+
+    body('CourseIDs')
+        .optional()
+        .isArray().withMessage('CourseIDs must be an array')
+        .custom((value) => {
+            if (Array.isArray(value)) {
+                return value.every((id) => Number.isInteger(id) && id > 0);
+            }
+            return false;
+        }).withMessage('All CourseIDs must be positive integers'),
+];
+
+export const validateInstructorUpdate: ValidationChain[] = [
+    ...validateId('id'),
+    body('FirstMidName')
+        .optional()
+        .trim()
+        .notEmpty().withMessage('FirstMidName cannot be empty')
+        .isLength({ min: 1, max: 50 }).withMessage('FirstMidName must be between 1 and 50 characters')
+        .matches(/^[a-zA-Z\s\-'\.]+$/).withMessage('FirstMidName contains invalid characters'),
+
+    body('LastName')
+        .optional()
+        .trim()
+        .notEmpty().withMessage('LastName cannot be empty')
+        .isLength({ min: 1, max: 50 }).withMessage('LastName must be between 1 and 50 characters')
+        .matches(/^[a-zA-Z\s\-'\.]+$/).withMessage('LastName contains invalid characters'),
+
+    body('HireDate')
+        .optional()
+        .isISO8601().withMessage('HireDate must be a valid date (YYYY-MM-DD)')
+        .custom((value) => {
+            const date = new Date(value);
+            const minDate = new Date('1900-01-01');
+            const maxDate = new Date();
+
+            if (date < minDate || date > maxDate) {
+                throw new Error('HireDate must be between 1900 and today');
+            }
+            return true;
+        })
+        .toDate(),
+
+    body('OfficeLocation')
+        .optional({ values: 'falsy' })
+        .trim()
+        .isLength({ max: 50 }).withMessage('OfficeLocation cannot exceed 50 characters')
+        .matches(/^[a-zA-Z0-9\s\-\.#]+$/).withMessage('OfficeLocation contains invalid characters'),
+
+    body('CourseIDs')
+        .optional()
+        .isArray().withMessage('CourseIDs must be an array')
+        .custom((value) => {
+            if (Array.isArray(value)) {
+                return value.every((id) => Number.isInteger(id) && id > 0);
+            }
+            return false;
+        }).withMessage('All CourseIDs must be positive integers'),
+];
+
+/**
+ * Validates instructor assignment (for course assignment endpoint)
  */
 export const validateInstructorAssignment: ValidationChain[] = [
     ...validateId('id'),

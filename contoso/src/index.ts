@@ -11,6 +11,8 @@ import healthRouter from './routes/health';
 import departmentsRouter from './routes/departments';
 import coursesRouter from './routes/courses';
 import studentsRouter from './routes/students';
+import instructorsRouter from './routes/instructors';
+import statsRouter from './routes/stats';
 
 dotenv.config();
 
@@ -85,6 +87,8 @@ app.use('/api', healthRouter);
 app.use('/api/departments', departmentsRouter);
 app.use('/api/courses', coursesRouter);
 app.use('/api/students', studentsRouter);
+app.use('/api/instructors', instructorsRouter);
+app.use('/api/stats', statsRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -96,6 +100,8 @@ app.get('/', (req: Request, res: Response) => {
             departments: '/api/departments',
             courses: '/api/courses',
             students: '/api/students',
+            instructors: '/api/instructors',
+            stats: '/api/stats',
         },
     });
 });

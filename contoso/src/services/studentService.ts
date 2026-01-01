@@ -77,8 +77,13 @@ export class StudentService {
         return student;
     }
 
-    async create(data: { FirstMidName: string; LastName: string; EnrollmentDate: Date | string }) {
-        const { FirstMidName, LastName, EnrollmentDate } = data;
+    async create(data: {
+        FirstMidName: string;
+        LastName: string;
+        EnrollmentDate: Date | string;
+        Enrollments?: Array<{ CourseID: number; Grade?: number | null }>;
+    }) {
+        const { FirstMidName, LastName, EnrollmentDate, Enrollments } = data;
 
         if (!FirstMidName || !FirstMidName.trim()) {
             throw new ValidationError('FirstMidName is required');
@@ -92,21 +97,36 @@ export class StudentService {
             throw new ValidationError('EnrollmentDate must be a valid date');
         }
 
-        const result = await db
-            .insert(students)
-            .values({
-                FirstMidName: FirstMidName.trim(),
-                LastName: LastName.trim(),
-                EnrollmentDate: enrollmentDate,
-            })
-            .returning();
+        // Use transaction to create student and enrollments
+        return await db.transaction(async (tx) => {
+            const result = await tx
+                .insert(students)
+                .values({
+                    FirstMidName: FirstMidName.trim(),
+                    LastName: LastName.trim(),
+                    EnrollmentDate: enrollmentDate,
+                })
+                .returning();
 
-        return result[0];
+            const student = result[0];
+
+            // Create enrollments if provided
+            if (Enrollments && Enrollments.length > 0) {
+                await this.syncEnrollments(student.ID, Enrollments, tx);
+            }
+
+            return student;
+        });
     }
 
     async update(
         id: number,
-        data: { FirstMidName?: string; LastName?: string; EnrollmentDate?: Date | string }
+        data: {
+            FirstMidName?: string;
+            LastName?: string;
+            EnrollmentDate?: Date | string;
+            Enrollments?: Array<{ CourseID: number; Grade?: number | null }>;
+        }
     ) {
         const student = await db.query.students.findFirst({
             where: eq(students.ID, id),
@@ -116,33 +136,40 @@ export class StudentService {
             throw new NotFoundError(`Student with ID ${id} not found`);
         }
 
-        const updateData: { FirstMidName?: string; LastName?: string; EnrollmentDate?: Date } = {};
+        return await db.transaction(async (tx) => {
+            const updateData: { FirstMidName?: string; LastName?: string; EnrollmentDate?: Date } = {};
 
-        if (data.FirstMidName !== undefined) {
-            if (!data.FirstMidName.trim()) {
-                throw new ValidationError('FirstMidName cannot be empty');
+            if (data.FirstMidName !== undefined) {
+                if (!data.FirstMidName.trim()) {
+                    throw new ValidationError('FirstMidName cannot be empty');
+                }
+                updateData.FirstMidName = data.FirstMidName.trim();
             }
-            updateData.FirstMidName = data.FirstMidName.trim();
-        }
 
-        if (data.LastName !== undefined) {
-            if (!data.LastName.trim()) {
-                throw new ValidationError('LastName cannot be empty');
+            if (data.LastName !== undefined) {
+                if (!data.LastName.trim()) {
+                    throw new ValidationError('LastName cannot be empty');
+                }
+                updateData.LastName = data.LastName.trim();
             }
-            updateData.LastName = data.LastName.trim();
-        }
 
-        if (data.EnrollmentDate !== undefined) {
-            const d = new Date(data.EnrollmentDate);
-            if (isNaN(d.getTime())) {
-                throw new ValidationError('EnrollmentDate must be a valid date');
+            if (data.EnrollmentDate !== undefined) {
+                const d = new Date(data.EnrollmentDate);
+                if (isNaN(d.getTime())) {
+                    throw new ValidationError('EnrollmentDate must be a valid date');
+                }
+                updateData.EnrollmentDate = d;
             }
-            updateData.EnrollmentDate = d;
-        }
 
-        const result = await db.update(students).set(updateData).where(eq(students.ID, id)).returning();
+            const result = await tx.update(students).set(updateData).where(eq(students.ID, id)).returning();
 
-        return result[0];
+            // Sync enrollments if provided
+            if (data.Enrollments !== undefined) {
+                await this.syncEnrollments(id, data.Enrollments, tx);
+            }
+
+            return result[0];
+        });
     }
 
     async delete(id: number) {
@@ -156,5 +183,71 @@ export class StudentService {
 
         await db.delete(students).where(eq(students.ID, id));
         return { message: 'Student deleted successfully' };
+    }
+
+    /**
+     * Sync enrollments for a student - handles create, update, and delete
+     * Uses HashSet diff pattern similar to instructor courses
+     */
+    private async syncEnrollments(
+        studentID: number,
+        newEnrollments: Array<{ CourseID: number; Grade?: number | null }>,
+        tx: Parameters<Parameters<typeof db.transaction>[0]>[0]
+    ) {
+        // Get current enrollments
+        const current = await tx.query.enrollments.findMany({
+            where: eq(enrollments.StudentID, studentID),
+        });
+
+        const currentMap = new Map<number, typeof current[0]>(current.map((e: typeof current[0]) => [e.CourseID, e]));
+        const newMap = new Map(newEnrollments.map(e => [e.CourseID, e]));
+
+        // Find enrollments to delete (in current but not in new)
+        const toDelete = current.filter((e: typeof current[0]) => !newMap.has(e.CourseID));
+
+        // Find enrollments to add (in new but not in current)
+        const toAdd = newEnrollments.filter(e => !currentMap.has(e.CourseID));
+
+        // Find enrollments to update (in both, but grade changed)
+        const toUpdate = newEnrollments.filter(e => {
+            const curr = currentMap.get(e.CourseID);
+            if (!curr) return false;
+            // Update if grade is different (including null/undefined differences)
+            const newGrade = e.Grade === undefined ? null : e.Grade;
+            const currGrade = curr.Grade;
+            return newGrade !== currGrade;
+        });
+
+        // Execute deletes
+        if (toDelete.length > 0) {
+            for (const enrollment of toDelete) {
+                await tx.delete(enrollments).where(
+                    sql`${enrollments.EnrollmentID} = ${enrollment.EnrollmentID}`
+                );
+            }
+        }
+
+        // Execute inserts
+        if (toAdd.length > 0) {
+            await tx.insert(enrollments).values(
+                toAdd.map(e => ({
+                    StudentID: studentID,
+                    CourseID: e.CourseID,
+                    Grade: e.Grade === undefined ? null : e.Grade,
+                }))
+            );
+        }
+
+        // Execute updates
+        if (toUpdate.length > 0) {
+            for (const enrollment of toUpdate) {
+                const curr = currentMap.get(enrollment.CourseID);
+                if (curr) {
+                    await tx.update(enrollments)
+                        .set({ Grade: enrollment.Grade === undefined ? null : enrollment.Grade })
+                        .where(sql`${enrollments.EnrollmentID} = ${curr.EnrollmentID}`);
+                }
+            }
+        }
     }
 }

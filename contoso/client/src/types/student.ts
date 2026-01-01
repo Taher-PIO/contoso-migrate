@@ -35,16 +35,39 @@ export type Grade = 0 | 1 | 2 | 3 | 4; // A=0, B=1, C=2, D=3, F=4
 
 // Grade display helper
 export const gradeToString = (grade: number | null | undefined): string => {
-    if (grade === null || grade === undefined) return 'N/A';
+    if (grade === null || grade === undefined) return 'No grade';
     const grades = ['A', 'B', 'C', 'D', 'F'];
     return grades[grade] ?? 'N/A';
 };
 
-// Create/Update student DTO
+// String to grade enum helper
+export const stringToGrade = (gradeStr: string): number | null => {
+    const gradeMap: { [key: string]: number } = {
+        'A': 0,
+        'B': 1,
+        'C': 2,
+        'D': 3,
+        'F': 4,
+    };
+    return gradeMap[gradeStr.toUpperCase()] ?? null;
+};
+
+// Grade options for dropdowns
+export const gradeOptions = [
+    { value: '', label: 'No grade' },
+    { value: '0', label: 'A' },
+    { value: '1', label: 'B' },
+    { value: '2', label: 'C' },
+    { value: '3', label: 'D' },
+    { value: '4', label: 'F' },
+];
+
+// Create/Update student DTO with enrollments
 export interface StudentFormData {
     FirstMidName: string;
     LastName: string;
     EnrollmentDate: string; // yyyy-MM-dd format
+    Enrollments?: Array<{ CourseID: number; Grade?: number | null }>;
 }
 
 // API response for paginated list

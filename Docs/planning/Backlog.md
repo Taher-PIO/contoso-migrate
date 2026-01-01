@@ -119,9 +119,110 @@ Links:
 
 ---
 
+## Courses Module
+
+**Status**: Implementation Pending. See module documentation for details.
+
+- **Kickoff**: [modules/Courses/Kickoff.md](./modules/Courses/Kickoff.md)
+- **Slice Plan**: [modules/Courses/Slice-Plan.md](./modules/Courses/Slice-Plan.md)
+- **Readiness**: [modules/Courses/Readiness-Checklist.md](./modules/Courses/Readiness-Checklist.md)
+
+| Task ID      | Description                                      | Type     | Effort (hrs) | Status      | Acceptance Criteria                                                |
+| ------------ | ------------------------------------------------ | -------- | ------------ | ----------- | ------------------------------------------------------------------ |
+| **C-BE-1**   | Fix Title validation in `validation.ts`          | Backend  | 0.5          | `[ ]` To Do | API returns 400 for titles not between 3-50 chars.                 |
+| **C-BE-2**   | Add tests for instructor assignment              | Backend  | 2            | `[ ]` To Do | `assignInstructor` and `removeInstructor` are fully tested.        |
+| **C-BE-3**   | Add tests for cascade delete behavior            | Backend  | 1.5          | `[ ]` To Do | Deleting a course also deletes its enrollments.                    |
+| **C-FE-1**   | Create `courseService.ts` and `coursesSlice.ts`  | Frontend | 2            | `[ ]` To Do | Redux state management for courses is in place.                    |
+| **C-FE-2**   | Implement Course Index page                      | Frontend | 2            | `[ ]` To Do | Page lists all courses from the API; no pagination.                |
+| **C-FE-3**   | Implement Course Create page                     | Frontend | 3            | `[ ]` To Do | Form allows manual `CourseID` entry and has a department dropdown. |
+| **C-FE-4**   | Implement Course Edit page                       | Frontend | 2.5          | `[ ]` To Do | `CourseID` is displayed as read-only.                              |
+| **C-FE-5**   | Implement Course Details & Delete pages          | Frontend | 2            | `[ ]` To Do | Details are displayed; delete shows confirmation.                  |
+| **C-TEST-1** | Write Jest tests for all new frontend components | Testing  | 4            | `[ ]` To Do | Frontend test coverage for Courses is >75%.                        |
+| **C-TEST-2** | Write E2E tests for Course CRUD flow             | Testing  | 3            | `[ ]` To Do | A user can create, view, edit, and delete a course.                |
+
+---
+
+## Departments Module
+
+**Status**: Implementation Pending. See module documentation for details.
+
+- **Kickoff**: [modules/Departments/Kickoff.md](./modules/Departments/Kickoff.md)
+- **Slice Plan**: [modules/Departments/Slice-Plan.md](./modules/Departments/Slice-Plan.md)
+- **Readiness**: [modules/Departments/Readiness-Checklist.md](./modules/Departments/Readiness-Checklist.md)
+
+| Task ID      | Description                                                | Type     | Effort (hrs) | Status      | Acceptance Criteria                                                          |
+| ------------ | ---------------------------------------------------------- | -------- | ------------ | ----------- | ---------------------------------------------------------------------------- |
+| **D-BE-1**   | Add tests for optimistic concurrency                       | Backend  | 3            | `[ ]` To Do | API returns 409 on stale version for PUT/DELETE.                             |
+| **D-FE-1**   | Create `departmentService.ts` and `departmentsSlice.ts`    | Frontend | 2            | `[ ]` To Do | Redux state management for departments is in place.                          |
+| **D-FE-2**   | Implement Department Index, Details, Create pages          | Frontend | 4            | `[ ]` To Do | Basic CRUD pages are functional. Administrator dropdown is populated.        |
+| **D-FE-3**   | Implement Department Edit page with concurrency handling   | Frontend | 5            | `[ ]` To Do | Page handles 409 conflict and allows user to resolve.                        |
+| **D-FE-4**   | Implement Department Delete page with concurrency handling | Frontend | 4            | `[ ]` To Do | Page handles 409 conflict and prevents deletion of departments with courses. |
+| **D-TEST-1** | Write Jest tests for frontend concurrency flow             | Testing  | 4            | `[ ]` To Do | Test the UI response to a 409 error.                                         |
+| **D-TEST-2** | Write E2E tests for Department CRUD flow                   | Testing  | 3            | `[ ]` To Do | A user can create, view, edit, and delete a department.                      |
+
+---
+
+## Instructors Module
+
+**Status**: Implementation Pending. See module documentation for details.
+
+- **Kickoff**: [modules/Instructors/Kickoff.md](./modules/Instructors/Kickoff.md)
+- **Slice Plan**: [modules/Instructors/Slice-Plan.md](./modules/Instructors/Slice-Plan.md)
+- **Readiness**: [modules/Instructors/Readiness-Checklist.md](./modules/Instructors/Readiness-Checklist.md)
+
+| Task ID      | Description                                               | Type     | Effort (hrs) | Status      | Acceptance Criteria                                                          |
+| ------------ | --------------------------------------------------------- | -------- | ------------ | ----------- | ---------------------------------------------------------------------------- |
+| **I-BE-1**   | Implement `GET /api/instructors/view` endpoint            | Backend  | 4            | `[ ]` To Do | Endpoint returns the `InstructorIndexData` view model based on query params. |
+| **I-BE-2**   | Enhance `POST` and `PUT` endpoints for courses            | Backend  | 3            | `[ ]` To Do | API can create/update instructor with nested office and course assignments.  |
+| **I-FE-1**   | Create `instructorService.ts` and `instructorsSlice.ts`   | Frontend | 2            | `[ ]` To Do | Redux state management for instructors is in place.                          |
+| **I-FE-2**   | Implement Instructor Index page (3-panel view)            | Frontend | 8            | `[ ]` To Do | Page implements the master-detail-detail view.                               |
+| **I-FE-3**   | Implement Instructor Create/Edit pages                    | Frontend | 4            | `[ ]` To Do | Forms include UI for office location and course assignment checkboxes.       |
+| **I-FE-4**   | Implement Instructor Details & Delete pages               | Frontend | 2            | `[ ]` To Do | Standard details and confirmation pages are functional.                      |
+| **I-TEST-1** | Write Jest tests for the interactive Index page           | Testing  | 5            | `[ ]` To Do | Test that panel selections correctly trigger state updates and API calls.    |
+| **I-TEST-2** | Write E2E tests for Instructor CRUD and course assignment | Testing  | 4            | `[ ]` To Do | A user can create an instructor and assign them courses.                     |
+
+---
+
 ## Notes
 
 - All tasks are documentation-only; no scripts or code changes.
 - Keep PRs ≤ 300 LOC, focused on a single topic.
 - Use relative links and maintain consistency with planning documents.
 - If any planning detail is missing, write “N/A” and reference the source doc.
+
+---
+
+## Enrollments Module
+
+**Status**: Implementation Pending. See module documentation for details.
+
+- **Kickoff**: [modules/Enrollments/Kickoff.md](./modules/Enrollments/Kickoff.md)
+- **Slice Plan**: [modules/Enrollments/Slice-Plan.md](./modules/Enrollments/Slice-Plan.md)
+- **Readiness**: [modules/Enrollments/Readiness-Checklist.md](./modules/Enrollments/Readiness-Checklist.md)
+
+| Task ID      | Description                                              | Type     | Effort (hrs) | Status      | Acceptance Criteria                                                  |
+| ------------ | -------------------------------------------------------- | -------- | ------------ | ----------- | -------------------------------------------------------------------- |
+| **E-BE-1**   | Verify Student update handles enrollments                | Backend  | 1            | `[ ]` To Do | PUT `/api/students/{id}` persists enrollments create/remove/grade.   |
+| **E-BE-2**   | Add cascade delete tests                                 | Backend  | 1.5          | `[ ]` To Do | Deleting a Course/Student removes related enrollments (DB verified). |
+| **E-SEED-1** | Add dummy enrollments in Drizzle seed                    | Data     | 0.5          | `[ ]` To Do | Seed script inserts 3 sample enrollments after students/courses.     |
+| **E-FE-1**   | Ensure Student Create/Edit includes enrollments in state | Frontend | 1.5          | `[ ]` To Do | Redux state mirrors enrollments and updates via thunks.              |
+| **E-TEST-1** | Write Jest tests for Student enrollments flow            | Testing  | 2            | `[ ]` To Do | UI adds/removes enrollments and displays grade correctly.            |
+
+---
+
+## About Module
+
+**Status**: Implementation Pending. See module documentation for details.
+
+- **Kickoff**: [modules/About/Kickoff.md](./modules/About/Kickoff.md)
+- **Slice Plan**: [modules/About/Slice-Plan.md](./modules/About/Slice-Plan.md)
+- **Readiness**: [modules/About/Readiness-Checklist.md](./modules/About/Readiness-Checklist.md)
+
+| Task ID      | Description                                      | Type     | Effort (hrs) | Status      | Acceptance Criteria                                                                                         |
+| ------------ | ------------------------------------------------ | -------- | ------------ | ----------- | ----------------------------------------------------------------------------------------------------------- |
+| **A-BE-1**   | Document public stats endpoint parity            | Backend  | 1            | `[ ]` To Do | `GET /api/about/stats` returns counts for Students, Courses, Instructors, Enrollments matching legacy page. |
+| **A-BE-2**   | Edge cases and errors note                       | Backend  | 0.5          | `[ ]` To Do | Define behavior for empty DB (zero counts) and confirm 200 responses; N/A for auth.                         |
+| **A-DATA-1** | SQLite aggregation verification steps            | Data     | 0.5          | `[ ]` To Do | Notes confirm grouping/COUNT queries align with Drizzle approach and are deterministic.                     |
+| **A-FE-1**   | React About page route and Bootstrap layout plan | Frontend | 1            | `[ ]` To Do | Page displays four cards with counts and loads on mount; matches legacy look-and-feel.                      |
+| **A-TEST-1** | Backend test plan outline for stats endpoint     | Testing  | 1            | `[ ]` To Do | Mocha+Chai+Supertest checklist covers success (non-zero and zero) and failure cases.                        |
+| **A-TEST-2** | Frontend test plan outline for About page        | Testing  | 1            | `[ ]` To Do | Jest+RTL checklist covers initial load, render of counts, and error fallback.                               |

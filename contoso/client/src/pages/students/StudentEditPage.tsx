@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -11,8 +11,10 @@ import {
   clearCurrentStudent,
   clearError,
 } from '../../store/slices/studentsSlice';
+import { fetchCoursesThunk } from '../../store/slices/coursesSlice';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import type { StudentFormData } from '../../types/student';
+import { gradeOptions } from '../../types/student';
 
 // Enhanced validation schema with security checks
 const studentSchema = yup.object({
@@ -73,6 +75,13 @@ export const StudentEditPage: React.FC = () => {
   const { currentStudent, loading, error } = useAppSelector(
     (state) => state.students
   );
+  const { courses, loading: coursesLoading } = useAppSelector(
+    (state) => state.courses
+  );
+  const [selectedEnrollments, setSelectedEnrollments] = useState<
+    Map<number, number | null>
+  >(new Map());
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const {
     register,
@@ -80,13 +89,14 @@ export const StudentEditPage: React.FC = () => {
     reset,
     formState: { errors },
   } = useForm<StudentFormData>({
-    resolver: yupResolver(studentSchema),
+    resolver: yupResolver(studentSchema) as any,
   });
 
   useEffect(() => {
     if (id) {
       dispatch(fetchStudentById(parseInt(id)));
     }
+    dispatch(fetchCoursesThunk());
 
     return () => {
       dispatch(clearCurrentStudent());
@@ -95,19 +105,63 @@ export const StudentEditPage: React.FC = () => {
 
   // Pre-populate form when student data loads
   useEffect(() => {
-    if (currentStudent) {
+    if (currentStudent && !isInitialized) {
       reset({
         FirstMidName: currentStudent.FirstMidName,
         LastName: currentStudent.LastName,
         EnrollmentDate: currentStudent.EnrollmentDate.split('T')[0], // Extract date part
       });
+
+      // Pre-populate enrollments
+      const enrollmentMap = new Map<number, number | null>();
+      if (currentStudent.Enrollments) {
+        currentStudent.Enrollments.forEach((enrollment) => {
+          enrollmentMap.set(enrollment.CourseID, enrollment.Grade ?? null);
+        });
+      }
+      setSelectedEnrollments(enrollmentMap);
+      setIsInitialized(true);
     }
-  }, [currentStudent, reset]);
+  }, [currentStudent, reset, isInitialized]);
+
+  const handleEnrollmentToggle = (courseID: number) => {
+    setSelectedEnrollments((prev) => {
+      const newMap = new Map(prev);
+      if (newMap.has(courseID)) {
+        newMap.delete(courseID);
+      } else {
+        newMap.set(courseID, null); // No grade initially
+      }
+      return newMap;
+    });
+  };
+
+  const handleGradeChange = (courseID: number, gradeValue: string) => {
+    setSelectedEnrollments((prev) => {
+      const newMap = new Map(prev);
+      if (newMap.has(courseID)) {
+        newMap.set(courseID, gradeValue === '' ? null : parseInt(gradeValue));
+      }
+      return newMap;
+    });
+  };
 
   const onSubmit = async (data: StudentFormData) => {
     if (!id) return;
 
-    const result = await dispatch(updateStudent({ id: parseInt(id), data }));
+    const submitData: StudentFormData = {
+      ...data,
+      Enrollments: Array.from(selectedEnrollments.entries()).map(
+        ([CourseID, Grade]) => ({
+          CourseID,
+          Grade,
+        })
+      ),
+    };
+
+    const result = await dispatch(
+      updateStudent({ id: parseInt(id), data: submitData })
+    );
     if (updateStudent.fulfilled.match(result)) {
       navigate('/students');
     }
@@ -171,6 +225,92 @@ export const StudentEditPage: React.FC = () => {
                 {errors.EnrollmentDate?.message}
               </Form.Control.Feedback>
             </Form.Group>
+
+            {/* Enrollments Section */}
+            <div className='mb-4'>
+              <h5>Course Enrollments</h5>
+              <p className='text-muted small'>
+                Manage student course enrollments and grades
+              </p>
+
+              {coursesLoading ? (
+                <div className='text-muted'>Loading courses...</div>
+              ) : courses.length === 0 ? (
+                <div className='text-muted'>No courses available</div>
+              ) : (
+                <div
+                  className='border rounded p-3'
+                  style={{ maxHeight: '400px', overflowY: 'auto' }}
+                >
+                  {courses.map((course) => {
+                    const isSelected = selectedEnrollments.has(course.CourseID);
+                    const currentGrade = selectedEnrollments.get(
+                      course.CourseID
+                    );
+
+                    return (
+                      <div
+                        key={course.CourseID}
+                        className='mb-3 border-bottom pb-3'
+                      >
+                        <div className='form-check'>
+                          <input
+                            type='checkbox'
+                            className='form-check-input'
+                            id={`course-${course.CourseID}`}
+                            checked={isSelected}
+                            onChange={() =>
+                              handleEnrollmentToggle(course.CourseID)
+                            }
+                          />
+                          <label
+                            className='form-check-label fw-bold'
+                            htmlFor={`course-${course.CourseID}`}
+                          >
+                            {course.CourseID} - {course.Title}
+                            <span className='text-muted ms-2'>
+                              ({course.Credits} credits)
+                            </span>
+                          </label>
+                        </div>
+
+                        {isSelected && (
+                          <div className='mt-2 ms-4'>
+                            <label
+                              htmlFor={`grade-${course.CourseID}`}
+                              className='form-label small'
+                            >
+                              Grade (optional)
+                            </label>
+                            <select
+                              id={`grade-${course.CourseID}`}
+                              className='form-select form-select-sm'
+                              style={{ maxWidth: '150px' }}
+                              value={currentGrade === null ? '' : currentGrade}
+                              onChange={(e) =>
+                                handleGradeChange(
+                                  course.CourseID,
+                                  e.target.value
+                                )
+                              }
+                            >
+                              {gradeOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <small className='text-muted d-block mt-2'>
+                Selected enrollments: {selectedEnrollments.size}
+              </small>
+            </div>
 
             <div className='d-flex gap-2'>
               <Button type='submit' variant='primary' disabled={loading}>
